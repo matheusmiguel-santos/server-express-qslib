@@ -12,7 +12,6 @@ const db = mysql.createPool({
   password: 'Suus0220##',
   database: 'qualityseg_db',
   connectionLimit: 10,
-  connectTimeout: 30000, // 30 seconds
 });
 
 db.getConnection((err, connection) => {
@@ -23,21 +22,6 @@ db.getConnection((err, connection) => {
 
 app.use(cors());
 app.use(express.json());
-
-db.query(`
-  CREATE TABLE IF NOT EXISTS pagamentos (
-    id INT AUTO_INCREMENT,
-    usuario_id INT NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    cursos TEXT NOT NULL,
-    valor DECIMAL(10, 2) NOT NULL,
-    PRIMARY KEY (id),
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-  )`, (err, result) => {
-    if (err) throw err;
-    console.log("Tabela 'pagamentos' verificada/criada com sucesso.");
-});
-
 
 
 app.post('/login', (req, res) => {
@@ -101,39 +85,6 @@ app.post('/register', (req, res) => {
     res.send({ success: true });
   });
 
-});
-
-
-app.post('/webhook', (req, res) => {
-  console.log(req.body); // log the request body
-
-  // Check if the necessary data exists in the request body
-  if (!req.body || !req.body.data || !req.body.data.id) {
-    console.error('Invalid request body:', req.body);
-    return res.status(400).send({ success: false, message: 'Invalid request body' });
-  }
-
-
-  const { id, email, additional_info } = req.body;
-
-  // Parse the additional_info to get the courses
-  const { courses } = JSON.parse(additional_info);
-
-  // Calculate the total value of the courses
-  const valor = courses.reduce((total, curso) => total + curso.valor * curso.quantidade, 0);
-
-  // Insert the payment data into the 'pagamentos' table
-  const query = 'INSERT INTO pagamentos (id, email, cursos, valor) VALUES (?, ?, ?, ?)';
-  db.query(query, [id, email, JSON.stringify(courses), valor], (err, result) => {
-    if (err) {
-      console.error(err); // Adicionado para logar qualquer erro que ocorra
-      return res.send({ success: false, message: err.message });
-    }
-
-    res.send({ success: true });
-
-    
-  });
 });
 
 
